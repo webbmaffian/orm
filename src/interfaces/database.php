@@ -11,6 +11,8 @@ interface Database {
 
 	public function rollback();
 
+	public function escape_string($string);
+
 	public function query();
 	
 	public function query_params($query = '', $params = array());

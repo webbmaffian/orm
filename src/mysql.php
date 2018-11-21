@@ -72,6 +72,11 @@ class Mysql implements Database_Interface {
 		$this->is_transaction = false;
 		return $this->instance->rollback();
 	}
+
+
+	public function escape_string($string) {
+		return $this->instance->escape_string($string);
+	}
 	
 	
 	public function is_transaction() {
@@ -273,11 +278,6 @@ class Mysql implements Database_Interface {
 	
 	public function get_num_affected_rows() {
 		return $this->instance->affected_rows;
-	}
-	
-	
-	public function escape_string($string) {
-		return $this->instance->escape_string($string);
 	}
 
 
