@@ -1,0 +1,11 @@
+{
+    "name": "webbmaffian/orm",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mattias Forsman",
+            "email": "mattias@webbmaffian.se"
+        }
+    ],
+    "require": {}
+}
