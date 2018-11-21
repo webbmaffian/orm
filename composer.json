@@ -1,11 +1,22 @@
 {
     "name": "webbmaffian/orm",
-    "license": "MIT",
+	"license": "MIT",
     "authors": [
         {
             "name": "Mattias Forsman",
             "email": "mattias@webbmaffian.se"
         }
-    ],
-    "require": {}
+	],
+	"autoload": {
+		"psr-4": {
+			"Webbmaffian\\ORM\\": "src/"
+		}
+	},
+	"config": {
+		"classmap-authoritative": true
+	},
+    "require": {
+		"php": "^7.0.0",
+		"ext-mysqli": "*"
+	}
 }
