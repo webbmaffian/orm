@@ -1,6 +1,7 @@
 {
     "name": "webbmaffian/orm",
 	"license": "MIT",
+	"description": "",
     "authors": [
         {
             "name": "Mattias Forsman",
