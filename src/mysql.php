@@ -7,7 +7,7 @@ use Helpers\Helper;
 use Helpers\Database_Exception;
 use \mysqli;
 
-class Mysql implements Database_Interface {
+class Mysql implements Database {
 
 	protected $instance = null;
 	protected $is_transaction = false;

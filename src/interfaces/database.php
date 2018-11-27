@@ -18,6 +18,8 @@ interface Database {
 	public function query_params($query = '', $params = array());
 	
 	public function prepare($query);
+
+	public function get_result();
 	
 	public function get_value();
 	
@@ -32,6 +34,8 @@ interface Database {
 	public function insert($table, $params = array(), $options = null);
 	
 	public function update($table, $params = array(), $condition = array(), $options = null);
+
+	public function insert_update($table, $params = array(), $unique_keys = array(), $auto_increment = null);
 	
 	public function delete($table, $condition, $options = null);
 	

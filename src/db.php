@@ -8,9 +8,10 @@ class DB {
 
 	static private $_db = null;
 	
-	static public function instance($params = array(), $driver = Driver::MYSQL) {
+	static public function instance($params = array(), $driver = '') {
 		if(is_null(self::$_db)) {
 			switch($driver) {
+				case '':
 				case Driver::MYSQL:
 					self::setup_mysql($params);
 					break;
@@ -34,7 +35,7 @@ class DB {
 			'password' => ''
 		);
 
-		if(isset($_ENV['DB_PASS'])) $defaults['password'] = $_ENV['DB_PASS'];
+		if(isset($_ENV['DB_PASSWORD'])) $defaults['password'] = $_ENV['DB_PASSWORD'];
 		elseif(isset($_ENV['MYSQL_ROOT_PASSWORD'])) $defaults['password'] = $_ENV['MYSQL_ROOT_PASSWORD'];
 
 		$params = array_replace($params, $defaults);
