@@ -138,7 +138,6 @@ class Mysql implements Database {
 		$resource = $this->instance->query($query);
 
 		if(!$resource) {
-			Log::query_errors($this->last_error(), 'for query:' . "\n" . $query . "\n");
 			throw new Database_Exception($this->last_error());
 		}
 
