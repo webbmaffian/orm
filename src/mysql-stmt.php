@@ -2,9 +2,9 @@
 
 namespace Webbmaffian\ORM;
 
-use Interfaces\Database_Stmt;
-use Helpers\Helper;
-use Helpers\Database_Exception;
+use Webbmaffian\ORM\Interfaces\Database_Stmt;
+use Webbmaffian\ORM\Helpers\Helper;
+use Webbmaffian\ORM\Helpers\Database_Exception;
 use \mysqli;
 
 class Mysql_Stmt implements Database_Stmt {

@@ -2,9 +2,9 @@
 
 namespace Webbmaffian\ORM;
 
-use Interfaces\Database;
-use Helpers\Helper;
-use Helpers\Database_Exception;
+use Webbmaffian\ORM\Interfaces\Database;
+use Webbmaffian\ORM\Helpers\Helper;
+use Webbmaffian\ORM\Helpers\Database_Exception;
 use \mysqli;
 
 class Mysql implements Database {

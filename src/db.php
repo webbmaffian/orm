@@ -2,7 +2,7 @@
 
 namespace Webbmaffian\ORM;
 
-use Helpers\Driver;
+use Webbmaffian\ORM\Helpers\Driver;
 
 class DB {
 

@@ -2,8 +2,8 @@
 
 namespace Webbmaffian\ORM;
 
-use Interfaces\Database_Result;
-use Helpers\Database_Exception;
+use Webbmaffian\ORM\Interfaces\Database_Result;
+use Webbmaffian\ORM\Helpers\Database_Exception;
 use \mysqli_result;
 
 class Mysql_Result implements Database_Result {
