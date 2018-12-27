@@ -31,13 +31,13 @@ interface Database {
 
 	public function table_exists($table);
 	
-	public function insert($table, $params = array(), $options = null);
+	public function insert($table, $params = array());
 	
-	public function update($table, $params = array(), $condition = array(), $options = null);
+	public function update($table, $params = array(), $condition = array());
 
 	public function insert_update($table, $params = array(), $unique_keys = array(), $auto_increment = null);
 	
-	public function delete($table, $condition, $options = null);
+	public function delete($table, $condition);
 	
 	public function last_error();
 	

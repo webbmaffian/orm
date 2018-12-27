@@ -10,6 +10,7 @@ use \mysqli;
 class Mysql implements Database {
 
 	protected $instance = null;
+	protected $schema = null;
 	protected $is_transaction = false;
 	protected $savepoint_increment = 0;
 
@@ -41,6 +42,7 @@ class Mysql implements Database {
 		}
 
 		$this->instance->set_charset('utf8');
+		$this->schema = $args['database'];
 	}
 
 	public function test() {
@@ -207,7 +209,7 @@ class Mysql implements Database {
 	}
 
 	
-	public function insert($table, $params = array(), $options = null) {
+	public function insert($table, $params = array()) {
 		$params = $this->convert_arrays($params);
 
 		$query = 'INSERT INTO ' . $table . ' SET ' . $params;
@@ -217,7 +219,7 @@ class Mysql implements Database {
 	}
 
 	
-	public function update($table, $params = array(), $condition = array(), $options = null) {
+	public function update($table, $params = array(), $condition = array()) {
 		$params = $this->convert_arrays($params);
 		$condition = $this->convert_arrays($condition, ' AND ');
 
@@ -255,7 +257,7 @@ class Mysql implements Database {
 	}
 
 	
-	public function delete($table, $condition, $options = null) {
+	public function delete($table, $condition) {
 		$condition = $this->convert_arrays($condition, ' AND ');
 
 		$query = 'DELETE FROM ' . $table . ' WHERE ' . $condition;
@@ -351,5 +353,10 @@ class Mysql implements Database {
 		}
 
 		return $arr;
+	}
+
+
+	public function get_schema() {
+		return $this->schema;
 	}
 }
