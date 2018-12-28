@@ -29,6 +29,7 @@
 				throw new Database_Exception('Schema is missing from argument list.');
 			}
 
+			$schema = $args['schema'];
 			unset($args['schema']);
 			
 			$this->instance = @pg_connect(http_build_query($args, null, ' '));
@@ -37,7 +38,7 @@
 				throw new Database_Exception('Failed to connect to PostgreSQL.');
 			}
 
-			$this->set_schema($args['schema']);
+			$this->set_schema($schema);
 		}
 
 
