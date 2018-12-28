@@ -1,16 +1,16 @@
 <?php
 	namespace Webbmaffian\ORM;
 
+	use Webbmaffian\ORM\Abstracts\Sql;
 	use Webbmaffian\ORM\Interfaces\Database;
 	use Webbmaffian\ORM\Helpers\Helper;
 	use Webbmaffian\ORM\Helpers\Database_Exception;
 	
-	class Postgres implements Database {
-		const VARIABLES_REGEX = '/([^\:])\:([a-z0-9_]+)/i';
-		const NUM_PARAMS_REGEX = '/\s*\?/';
+	class Postgres extends Sql implements Database {
+		const NULL_VALUE = NULL;
+		const TRUE_VALUE = 'true';
+		const FALSE_VALUE = 'false';
 
-		protected $instance = null;
-		protected $schema = null;
 		
 		/* $args should be an associative array with the following keys:
 			- host
@@ -18,17 +18,9 @@
 			- dbname
 			- user
 			- password
-			- Schema
+			- schema
 		*/
-		public function __construct($args = array()) {
-			if(empty($args)) {
-				throw new Database_Exception('Missing arguments.');
-			}
-
-			if(!is_array($args)) {
-				throw new Database_Exception('Arguments must be an array.');
-			}
-
+		protected function setup_instance($args) {
 			if(!function_exists('pg_connect')) {
 				throw new Database_Exception('Postgres driver is missing.');
 			}
@@ -37,7 +29,6 @@
 				throw new Database_Exception('Schema is missing from argument list.');
 			}
 
-			$this->schema = $args['schema'];
 			unset($args['schema']);
 			
 			$this->instance = @pg_connect(http_build_query($args, null, ' '));
@@ -46,23 +37,7 @@
 				throw new Database_Exception('Failed to connect to PostgreSQL.');
 			}
 
-			$this->set_schema();
-		}
-
-
-		public function is_api() {
-			return false;
-		}
-
-
-		public function set_schema($schema = '') {
-			$this->schema = ($schema ?: $this->schema);
-			pg_query($this->instance, 'SET search_path TO ' . $this->schema);
-		}
-
-
-		public function get_schema() {
-			return $this->schema;
+			$this->set_schema($args['schema']);
 		}
 
 
@@ -84,37 +59,37 @@
 		public function rollback() {
 			$this->query('ROLLBACK');
 		}
-		
-		
-		public function query() {
-			$args = func_get_args();
-			$query = array_shift($args);
 
-			if(!is_string($query)) {
-				throw new Database_Exception('Query must be a string.');
-			}
 
-			if(!empty($args)) {
-				if(count($args) === 1) {
-					$args = is_array($args[0]) ? $args[0] : array($args[0]);
-				}
+		public function escape_string($string, $add_quotes = false) {
+			return ($add_quotes ? pg_escape_literal($this->instance, $string) : pg_escape_string($this->instance, $string));
+		}
 
-				return $this->query_params($query, $args);
-			}
-			
+
+		public function is_api() {
+			return false;
+		}
+
+
+		public function set_schema($schema = '') {
+			$this->schema = ($schema ?: $this->schema);
+			pg_query($this->instance, 'SET search_path TO ' . $this->schema);
+		}
+
+
+		protected function run_query($query) {
 			if(!pg_send_query($this->instance, $query)) {
 				throw new Database_Exception('Failed to execute query.');
 			}
 
 			$result = new Postgres_Result(pg_get_result($this->instance));
-
 			$result->check_error();
 			
 			return $result;
 		}
 		
 		
-		public function query_params($query = '', $params = array()) {
+		protected function query_params($query = '', $params = array()) {
 			if(Helper::is_assoc($params)) {
 				list($query, $params) = self::convert_assoc($query, $params);
 			}
@@ -139,50 +114,100 @@
 				throw new Database_Exception('Query must be a string.');
 			}
 			
-			return new Postgres_Stmt($this->instance, $query);
+			return new Postgres_Stmt($this, $query);
 		}
 
 
-		public function get_result() {
-			$args = func_get_args();
-			$result = call_user_func_array(array($this, 'query'), $args);
-
-			return $result->fetch_all();
-		}
-		
-		
-		public function get_value() {
-			$args = func_get_args();
-			$result = call_user_func_array(array($this, 'query'), $args);
-			
-			return $result->fetch_value();
-		}
-		
-		
-		public function get_column() {
-			$args = func_get_args();
-			$result = call_user_func_array(array($this, 'query'), $args);
-			
-			return $result->fetch_column();
-		}
-		
-		
-		public function get_row() {
-			$args = func_get_args();
-			$result = call_user_func_array(array($this, 'query'), $args);
-			
-			return $result->fetch_assoc();
-		}
-		
-		
 		public function get_last_id() {
-			return $this->get_value('SELECT lastval();');
+			return (int)$this->get_value('SELECT lastval();');
 		}
 
 
 		public function table_exists($table) {
-			$class = $this->get_value('SELECT to_regclass(' . $this->escape_string($table, true) . ');');
+			$class = $this->get_value('SELECT to_regclass(?);', $table);
 			return !is_null($class);
+		}
+
+
+		public function insert($table, $params = array()) {
+			$params = $this->format_values($params, false);
+			
+			$query = pg_insert($this->instance, $table, $params, PGSQL_DML_STRING | PGSQL_DML_ESCAPE);
+			$this->query($query);
+			
+			return true;
+		}
+
+
+		public function update($table, $params = array(), $condition = array()) {
+			$params = $this->format_values($params, false);
+			
+			$query = pg_update($this->instance, $table, $params, $condition, PGSQL_DML_STRING | PGSQL_DML_ESCAPE);
+			$this->query($query);
+			
+			return true;
+		}
+
+
+		// Insert with the "on duplicate key update" approach.
+		// This function can't be shared between Postgres and MySQL, as they work too different.
+		public function insert_update($table, $params = array(), $unique_keys = array(), $dont_update_keys = array(), $return_key = null) {
+			$params = $this->format_values($params);
+
+			if(!is_array($unique_keys)) {
+				$unique_keys = array($unique_keys);
+			}
+			
+			$non_unique_params = array_filter($params, function($v, $k) use ($unique_keys) {
+				return !in_array($k, $unique_keys);
+			}, ARRAY_FILTER_USE_BOTH);
+
+			if(!empty($dont_update_keys)) {
+				$non_unique_params = array_diff_key($non_unique_params, array_flip($dont_update_keys));
+			}
+
+			$query = 'INSERT INTO ' . $table . ' (' . implode(', ', array_keys($params)) . ') VALUES (' . implode(', ', $params) . ') ON CONFLICT (' . implode(', ', $unique_keys) . ') DO UPDATE SET ' . $this->get_param_string($non_unique_params);
+			
+			if(!is_null($return_key)) {
+				$query .= ' RETURNING ' . $return_key;
+			}
+
+			return $this->query($query);
+		}
+		
+		
+		public function delete($table, $condition) {
+			$query = pg_delete($this->instance, $table, $condition, PGSQL_DML_STRING | PGSQL_DML_ESCAPE);
+			$this->query($query);
+			
+			return true;
+		}
+		
+		
+		public function last_error() {
+			return pg_last_error($this->instance);
+		}
+		
+		
+		public function close() {
+			return pg_close($this->instance);
+		}
+
+		
+		static protected function get_param_placeholder($index) {
+			return '$' . $index;
+		}
+
+
+		// Adds support for question marks as parameter placeholders - MySQL-style.
+		static public function convert_numeric($query) {
+			$i = 0;
+			
+			$new_query = preg_replace_callback('/\?/', function($matches) use (&$i) {
+				return '$' . ++$i;
+			}, $query);
+
+			return $new_query;
 		}
 
 
@@ -235,182 +260,5 @@
 			}
 
 			return $null_values;
-		}
-
-
-		public function insert($table, $params = array()) {
-			$params = $this->convert_arrays($params);
-			$params = $this->format_values($params, false);
-			
-			$query = pg_insert($this->instance, $table, $params, PGSQL_DML_STRING | PGSQL_DML_ESCAPE);
-			$this->query($query);
-			
-			return true;
-		}
-
-
-		// Insert with the "on duplicate key update" approach
-		public function insert_update($table, $params = array(), $unique_keys = array(), $dont_update_keys = array(), $return_key = null) {
-			$params = $this->format_values($params);
-
-			if(!is_array($unique_keys)) {
-				$unique_keys = array($unique_keys);
-			}
-			
-			$non_unique_params = array_filter($params, function($v, $k) use ($unique_keys) {
-				return !in_array($k, $unique_keys);
-			}, ARRAY_FILTER_USE_BOTH);
-
-			if(!empty($dont_update_keys)) {
-				$non_unique_params = array_diff_key($non_unique_params, array_flip($dont_update_keys));
-			}
-
-			$query = 'INSERT INTO ' . $table . ' (' . implode(', ', array_keys($params)) . ') VALUES (' . implode(', ', $params) . ') ON CONFLICT (' . implode(', ', $unique_keys) . ') DO UPDATE SET ' . $this->get_param_string($non_unique_params);
-			
-			if(!is_null($return_key)) {
-				$query .= ' RETURNING ' . $return_key;
-			}
-
-			return $this->query($query);
-		}
-		
-		
-		public function update($table, $params = array(), $condition = array()) {
-			$params = $this->convert_arrays($params);
-			$params = $this->format_values($params, false);
-			
-			$query = pg_update($this->instance, $table, $params, $condition, PGSQL_DML_STRING | PGSQL_DML_ESCAPE);
-			$this->query($query);
-			
-			return true;
-		}
-		
-		
-		public function delete($table, $condition) {
-			$query = pg_delete($this->instance, $table, $condition, PGSQL_DML_STRING | PGSQL_DML_ESCAPE);
-			$this->query($query);
-			
-			return true;
-		}
-		
-		
-		public function last_error() {
-			return pg_last_error($this->instance);
-		}
-		
-		
-		public function close() {
-			return pg_close($this->instance);
-		}
-
-
-		private function convert_arrays($arr = array()) {
-			foreach($arr as $key => $value) {
-				if(is_array($value)) {
-					array_walk_recursive($value, function(&$val, $key) {
-						$val = addslashes($val);
-					});
-
-					$arr[$key] = json_encode($value);
-				}
-			}
-
-			return $arr;
-		}
-
-
-		private function format_values($params = array(), $quotes = true) {
-			foreach($params as $key => $value) {
-				if(is_array($value)) {
-					$value = json_encode($value);
-				}
-				elseif($value instanceof \DateTime) {
-					$value = $value->format('Y-m-d H:i:s');
-				}
-				
-				if(is_numeric($value)) {
-					$params[$key] = (int)$value;
-				}
-				elseif(is_string($value)) {
-					$value = trim($value);
-					$params[$key] = $this->escape_string($value, $quotes);
-				}
-				elseif(is_bool($value)) {
-					$params[$key] = $value ? 'true' : 'false';
-				}
-				elseif(is_null($value)) {
-					$params[$key] = NULL;
-				}
-			}
-			
-			return $params;
-		}
-		
-
-		private function get_param_string($params = array(), $delimiter = ', ') {
-			return urldecode(http_build_query($params, '', $delimiter));
-		}
-
-
-		public function escape_string($string, $add_quotes = false) {
-			return ($add_quotes ? pg_escape_literal($this->instance, $string) : pg_escape_string($this->instance, $string));
-		}
-
-
-		/* 	Converts associative parametered queries like:
-				$query = SELECT * FROM shops WHERE name = :name AND something = :somewhat OR another_name = :name
-				$params = array('name' => 'A Name', 'somewhat' => 'Some data')
-		
-			... to:
-				$query = SELECT * FROM shops WHERE name = $1 AND something = $2 OR another_name = $1
-				$params = array('A Name', 'Some data')
-		
-			... in order to run pg_query_params
-		*/
-		static public function convert_assoc($query = '', $params) {
-			list($new_query, $mappings) = self::convert_query($query);
-			
-			$params = self::sort_params($params, $mappings);
-
-			return array($new_query, $params);
-		}
-
-
-		static public function convert_query($query = '') {
-			$mappings = array();
-
-			$new_query = preg_replace_callback(self::VARIABLES_REGEX, function($matches) use (&$mappings) {
-				$name = $matches[2];
-				
-				if(!isset($mappings[$name])) {
-					$mappings[$name] = (empty($mappings) ? 1 : end($mappings) + 1);
-				}
-				
-				return $matches[1] . '$' . $mappings[$name];
-			}, $query);
-
-			return array($new_query, $mappings);
-		}
-		
-		
-		static public function sort_params($params = array(), $mapping = array()) {
-			$arr = array();
-			
-			foreach($mapping as $key => $value) {
-				$arr[] = $params[$key];
-			}
-
-			return $arr;
-		}
-
-
-		static public function convert_numeric($query) {
-			$i = 0;
-			
-			$new_query = preg_replace_callback(self::NUM_PARAMS_REGEX, function($matches) use (&$i) {
-				return ' $' . ++$i;
-			}, $query);
-
-			return $new_query;
 		}
 	}

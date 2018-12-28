@@ -1,19 +1,18 @@
 <?php
-
 namespace Webbmaffian\ORM;
 
+use Webbmaffian\ORM\Abstracts\Sql;
 use Webbmaffian\ORM\Interfaces\Database;
 use Webbmaffian\ORM\Helpers\Helper;
 use Webbmaffian\ORM\Helpers\Database_Exception;
 use \mysqli;
 
-class Mysql implements Database {
+class Mysql extends Sql implements Database {
+	const NULL_VALUE = 'NULL';
+	const TRUE_VALUE = 1;
+	const FALSE_VALUE = 0;
 
-	protected $instance = null;
-	protected $schema = null;
-	protected $is_transaction = false;
-	protected $savepoint_increment = 0;
-
+	
 	/**
 	 *  $args should be an associative array with the following keys:
 	 * - host
@@ -22,15 +21,7 @@ class Mysql implements Database {
 	 * - user
 	 * - password
 	*/
-	public function __construct($args) {
-		if(empty($args)) {
-			throw new Database_Exception('Missing arguments.');
-		}
-
-		if(!is_array($args)) {
-			throw new Database_Exception('Arguments must be an array.');
-		}
-
+	protected function setup_instance($args) {
 		if(!function_exists('mysqli_init')) {
 			throw new Database_Exception('Mysqli driver is missing.');
 		}
@@ -44,6 +35,7 @@ class Mysql implements Database {
 		$this->instance->set_charset('utf8');
 		$this->schema = $args['database'];
 	}
+
 
 	public function test() {
 		return $this->instance->ping();
@@ -76,13 +68,10 @@ class Mysql implements Database {
 	}
 
 
-	public function escape_string($string) {
-		return $this->instance->escape_string($string);
-	}
-	
-	
-	public function is_transaction() {
-		return $this->is_transaction;
+	public function escape_string($string, $add_quotes = false) {
+		$string = $this->instance->escape_string($string);
+
+		return ($add_quotes ? ('"' . $string . '"') : $string);
 	}
 	
 	
@@ -121,21 +110,7 @@ class Mysql implements Database {
 	}
 
 
-	public function query() {
-		$args = func_get_args();
-		$query = array_shift($args);
-
-		if(!is_string($query)) {
-			throw new Database_Exception('Query must be a string.');
-		}
-
-		if(!empty($args)) {
-			if(count($args) === 1) {
-				$args = is_array($args[0]) ? $args[0] : array($args[0]);
-			}
-			return $this->query_params($query, $args);
-		}
-
+	protected function run_query($query) {
 		// Can be boolean or mysqli_result object. We always want to return our own Mysql_Result.
 		$resource = $this->instance->query($query);
 
@@ -147,7 +122,7 @@ class Mysql implements Database {
 	}
 	
 
-	public function query_params($query = '', $params = array()) {
+	protected function query_params($query = '', $params = array()) {
 		if(Helper::is_assoc($params)) {
 			list($query, $params) = self::convert_assoc($query, $params);
 		}
@@ -163,43 +138,12 @@ class Mysql implements Database {
 			throw new Database_Exception('Query must be a string.');
 		}
 
-		return new Mysql_Stmt($this->instance, $query);
-	}
-
-	
-	public function get_result() {
-		$args = func_get_args();
-		$result = call_user_func_array(array($this, 'query'), $args);
-		return $result->fetch_all();
-	}
-	
-	
-	public function get_value() {
-		$args = func_get_args();
-		$result = call_user_func_array(array($this, 'query'), $args);
-		
-		return $result->fetch_value();
-	}
-	
-	
-	public function get_column() {
-		$args = func_get_args();
-		$result = call_user_func_array(array($this, 'query'), $args);
-		
-		return $result->fetch_column();
-	}
-	
-	
-	public function get_row() {
-		$args = func_get_args();
-		$result = call_user_func_array(array($this, 'query'), $args);
-		
-		return $result->fetch_assoc();
+		return new Mysql_Stmt($this, $query);
 	}
 
 	
 	public function get_last_id() {
-		return $this->instance->insert_id;
+		return (int)$this->instance->insert_id;
 	}
 
 
@@ -224,12 +168,14 @@ class Mysql implements Database {
 		$condition = $this->convert_arrays($condition, ' AND ');
 
 		$query = 'UPDATE ' . $table . ' SET ' . $params . ' WHERE ' . $condition;
-		$result = $this->query($query);
+		$this->query($query);
 
 		return true;
 	}
 	
-	// Insert with the "on duplicate key update" approach
+
+	// Insert with the "on duplicate key update" approach.
+	// This function can't be shared between Postgres and MySQL, as they work too different.
 	public function insert_update($table, $params = array(), $unique_keys = array(), $auto_increment = null) {
 		$params = $this->format_values($params);
 		
@@ -239,7 +185,7 @@ class Mysql implements Database {
 		
 		$param_keys = array_keys($params);
 		$param_values = array_values($params);
-		
+
 		$param_keys_non_unique = array_diff($param_keys, $unique_keys);
 		$param_keys_non_unique = array_map(function($key) {
 			return 'VALUES(' . $key . ')';
@@ -287,76 +233,7 @@ class Mysql implements Database {
 	}
 	
 	
-	private function format_values($params = array()) {
-		foreach($params as $key => $value) {
-			if(is_array($value)) {
-				$value = json_encode($value);
-			}
-			elseif($value instanceof \DateTime) {
-				$value = $value->format('Y-m-d H:i:s');
-			}
-			
-			if(is_string($value)) {
-				$params[$key] = '"' . $this->escape_string(trim($value)) . '"';
-			}
-			elseif(is_null($value)) {
-				$params[$key] = 'NULL';
-			}
-		}
-		
-		return $params;
-	}
-	
-	
-	private function get_param_string($params = array(), $delimiter = ', ') {
-		return urldecode(http_build_query($params, '', $delimiter));
-	}
-
-
-	/**
-	 * Converts associative parametered queries like:
-	 * $query = SELECT * FROM shops WHERE name = :name AND something = :somewhat OR another_name = :name
-	 * $params = array('name' => 'A Name', 'somewhat' => 'Some data')
-	 * 
-	 * ... to:
-	 * $query = SELECT * FROM shops WHERE name = ? AND something = ? OR another_name = ?
-	 * $params = array('A Name', 'Some data', 'A name')
-	 * 
-	 * ... in order to run mysqli prepared statements
-	 */
-	static private function convert_assoc($query = '', $params) {
-		list($new_query, $mappings) = self::convert_query($query);
-
-		$params = self::sort_params($params, $mappings);
-
-		return array($new_query, $params);
-	}
-
-	static public function convert_query($query = '') {
-		$mappings = array();
-
-		$new_query = preg_replace_callback('/\:([a-zA-Z0-9_]+)/', function($matches) use (&$mappings) {
-			$mappings[] = $matches[1];
-
-			return '?';
-		}, $query);
-
-		return array($new_query, $mappings);
-	}
-
-
-	static public function sort_params($params, $mappings) {
-		$arr = array();
-
-		foreach($mappings as $value) {
-			$arr[] = $params[$value];
-		}
-
-		return $arr;
-	}
-
-
-	public function get_schema() {
-		return $this->schema;
+	static protected function get_param_placeholder($index) {
+		return '?';
 	}
 }

@@ -2,33 +2,15 @@
 
 namespace Webbmaffian\ORM;
 
+use Webbmaffian\ORM\Abstracts\Sql_Stmt;
 use Webbmaffian\ORM\Interfaces\Database_Stmt;
 use Webbmaffian\ORM\Helpers\Helper;
 use Webbmaffian\ORM\Helpers\Database_Exception;
 use \mysqli;
 
-class Mysql_Stmt implements Database_Stmt {
-	protected $instance;
-	protected $stmt;
-	protected $query;
-	protected $mappings = array();
-	
-	
-	public function __construct($instance, $query = '') {
-		if(!($instance instanceof mysqli)) {
-			throw new Database_Exception('Instance must be of type mysqli.');
-		}
-		
-		$this->instance = $instance;
-		$this->query = $query;
-		
-		if(Helper::match('/=\s*:/', $query) !== '') list($query, $this->mappings) = Mysql::convert_query($query);
-
-		$this->stmt = $this->instance->prepare($query);
-		
-		if(!$this->stmt) {
-			throw new Database_Exception($this->instance->error);
-		}
+class Mysql_Stmt extends Sql_Stmt implements Database_Stmt {
+	protected function create_stmt($query) {
+		$this->stmt = $this->db->get_instance()->prepare($query);
 	}
 
 	
@@ -43,7 +25,7 @@ class Mysql_Stmt implements Database_Stmt {
 			if(Helper::is_assoc($args)) {
 				if(empty($this->mappings)) throw new Database_Exception('Missing parameter mappings.');
 
-				$args = Mysql::sort_params($args, $this->mappings);
+				$args = Sql::sort_params($args, $this->mappings);
 			}
 
 			$types = '';
@@ -70,10 +52,5 @@ class Mysql_Stmt implements Database_Stmt {
 		}
 		
 		return new Mysql_Result($this->stmt->get_result());
-	}
-
-
-	public function get_query() {
-		return $this->query;
 	}
 }
