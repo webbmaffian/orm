@@ -89,7 +89,7 @@
 		}
 		
 		
-		protected function query_params($query = '', $params = array()) {
+		public function query_params($query = '', $params = array()) {
 			if(Helper::is_assoc($params)) {
 				list($query, $params) = self::convert_assoc($query, $params);
 			}
