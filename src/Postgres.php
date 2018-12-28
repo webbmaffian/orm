@@ -94,8 +94,6 @@
 				throw new Database_Exception('Query must be a string.');
 			}
 
-			$query = self::format_query($query);
-
 			if(!empty($args)) {
 				if(count($args) === 1) {
 					$args = is_array($args[0]) ? $args[0] : array($args[0]);
@@ -140,8 +138,6 @@
 			if(!is_string($query)) {
 				throw new Database_Exception('Query must be a string.');
 			}
-
-			$query = self::format_query($query);
 			
 			return new Postgres_Stmt($this->instance, $query);
 		}
@@ -185,7 +181,7 @@
 
 
 		public function table_exists($table) {
-			$class = $this->get_value("SELECT to_regclass('$table');");
+			$class = $this->get_value('SELECT to_regclass(' . $this->escape_string($table, true) . ');');
 			return !is_null($class);
 		}
 
@@ -323,12 +319,6 @@
 		}
 
 
-		// Postgres doesn't support double-quote strings
-		private function format_query($query) {
-			return str_replace('"', '\'', $query);
-		}
-
-
 		private function format_values($params = array(), $quotes = true) {
 			foreach($params as $key => $value) {
 				if(is_array($value)) {
@@ -343,11 +333,7 @@
 				}
 				elseif(is_string($value)) {
 					$value = trim($value);
-					if($quotes) {
-						$params[$key] = "'" . pg_escape_string($this->instance, $value) . "'";
-					} else {
-						$params[$key] = pg_escape_string($this->instance, $value);
-					}
+					$params[$key] = $this->escape_string($value, $quotes);
 				}
 				elseif(is_bool($value)) {
 					$params[$key] = $value ? 'true' : 'false';
@@ -409,6 +395,7 @@
 		
 		static public function sort_params($params = array(), $mapping = array()) {
 			$arr = array();
+			
 			foreach($mapping as $key => $value) {
 				$arr[] = $params[$key];
 			}
