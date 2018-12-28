@@ -6,6 +6,10 @@
         {
             "name": "Mattias Forsman",
             "email": "mattias@webbmaffian.se"
+		},
+		{
+            "name": "Ivar Johansson",
+            "email": "ivar@webbmaffian.se"
         }
 	],
 	"autoload": {
