@@ -22,7 +22,7 @@
 			$this->name = 'stmt' . self::$next_name;
 			$this->query = $query;
 			
-			if(preg_match(Sql::VARIABLES_REGEX, $query) !== '') {
+			if(preg_match(Sql::VARIABLE_REGEX, $query) !== '') {
 				list($query, $this->mappings) = Sql::convert_query($query);
 			}
 
