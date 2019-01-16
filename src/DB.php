@@ -12,15 +12,17 @@ class DB {
 	
 	static public function instance($id = 'app') {
 		$id = self::get_identifier($id);
+		$type = isset($_ENV['DB_TYPE']) ? $_ENV['DB_TYPE'] : '';
 
 		if(!isset(self::$_instances[$id])) {
-			switch($_ENV['DB_TYPE']) {
+			switch($type) {
 				case '':
 				case Driver::MYSQL:
 				case 'mysql':
 					self::$_instances[$id] = self::setup_mysql($id);
 					break;
 				
+				case Driver::POSTGRES:
 				case 'postgresql':
 					self::$_instances[$id] = self::setup_postgresql($id);
 					break;
