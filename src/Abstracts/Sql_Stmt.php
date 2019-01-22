@@ -21,9 +21,10 @@
 			$this->db = $db;
 			$this->name = 'stmt' . self::$next_name;
 			$this->query = $query;
+			$db_class = get_class($db);
 			
-			if(preg_match(Sql::VARIABLE_REGEX, $query) !== '') {
-				list($query, $this->mappings) = Sql::convert_query($query);
+			if(preg_match($db_class::VARIABLE_REGEX, $query) !== '') {
+				list($query, $this->mappings) = $db_class::convert_query($query);
 			}
 
 			$this->create_stmt($query);
