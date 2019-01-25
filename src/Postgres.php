@@ -48,16 +48,22 @@
 
 
 		public function start_transaction() {
+			if($this->is_transaction()) return;
+
 			$this->query('BEGIN');
 		}
 	
 	
 		public function end_transaction() {
+			if(!$this->is_transaction()) return;
+
 			$this->query('COMMIT');
 		}
 	
 	
 		public function rollback() {
+			if(!$this->is_transaction()) return;
+
 			$this->query('ROLLBACK');
 		}
 
