@@ -12,7 +12,7 @@ class DB {
 	
 	static public function instance($id = 'app') {
 		$id = self::get_identifier($id);
-		$type = isset($_ENV['DB_TYPE']) ? $_ENV['DB_TYPE'] : '';
+		$type = isset($_ENV['DB_TYPE']) ? $_ENV['DB_TYPE'] : Driver::MYSQL;
 
 		if(!isset(self::$_instances[$id])) {
 			switch($type) {
