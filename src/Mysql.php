@@ -43,9 +43,7 @@ class Mysql extends Sql implements Database {
 
 
 	public function start_transaction() {
-		if($this->is_transaction()) {
-			throw new Database_Exception('Transaction already started.');
-		}
+		if($this->is_transaction()) return;
 		
 		$this->is_transaction = true;
 		return $this->instance->begin_transaction();

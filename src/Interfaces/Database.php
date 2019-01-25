@@ -9,6 +9,8 @@ interface Database {
 
 	public function end_transaction();
 
+	public function is_transaction();
+
 	public function rollback();
 
 	public function escape_string($string);
