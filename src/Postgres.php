@@ -50,6 +50,7 @@
 		public function start_transaction() {
 			if($this->is_transaction()) return;
 
+			$this->is_transaction = true;
 			$this->query('BEGIN');
 		}
 	
@@ -57,6 +58,7 @@
 		public function end_transaction() {
 			if(!$this->is_transaction()) return;
 
+			$this->is_transaction = false;
 			$this->query('COMMIT');
 		}
 	
@@ -64,6 +66,7 @@
 		public function rollback() {
 			if(!$this->is_transaction()) return;
 
+			$this->is_transaction = false;
 			$this->query('ROLLBACK');
 		}
 
