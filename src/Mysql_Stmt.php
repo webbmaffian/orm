@@ -1,7 +1,7 @@
 <?php
 
 namespace Webbmaffian\ORM;
-
+use Webbmaffian\ORM\Abstracts\Sql;
 use Webbmaffian\ORM\Abstracts\Sql_Stmt;
 use Webbmaffian\ORM\Interfaces\Database_Stmt;
 use Webbmaffian\ORM\Helpers\Helper;
