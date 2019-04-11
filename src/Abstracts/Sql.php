@@ -117,7 +117,10 @@ abstract class Sql {
 				$value = $value->format('Y-m-d H:i:s');
 			}
 			
-			if(is_numeric($value)) {
+			// We can't use is_numeric() here as the string "+46700000000" seems
+			// to be numeric. This solution should work with everything except
+			// a float in a string ("1.1").
+			if(is_int($value) || is_float($value) || ctype_digit($value)) {
 				$params[$key] = (float)$value;
 			}
 			elseif(is_string($value)) {
