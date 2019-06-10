@@ -192,4 +192,14 @@ abstract class Sql {
 	public function get_instance() {
 		return $this->instance;
 	}
+
+
+	public function get_column_names($table) {
+		$query = 'SELECT column_name FROM information_schema.columns WHERE table_schema = :schema_name AND table_name = :table_name';
+
+		return $this->get_column($query, array(
+			'schema_name' => $this->schema,
+			'table_name' => $table
+		));
+	}
 }
