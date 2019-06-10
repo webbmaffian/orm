@@ -107,7 +107,7 @@ abstract class Sql {
 	protected function format_values($params = array(), $quotes = true) {
 		foreach($params as $key => $value) {
 			if(is_array($value)) {
-				array_walk_recursive($value, function(&$val, $key) {
+				array_walk_recursive($value, function(&$value, $key) {
 					$val = addslashes($val);
 				});
 
@@ -117,10 +117,7 @@ abstract class Sql {
 				$value = $value->format('Y-m-d H:i:s');
 			}
 			
-			// We can't use is_numeric() here as the string "+46700000000" seems
-			// to be numeric. This solution should work with everything except
-			// a float in a string ("1.1").
-			if(is_int($value) || is_float($value) || ctype_digit($value)) {
+			if(Helper::is_numeric($value)) {
 				$params[$key] = (float)$value;
 			}
 			elseif(is_string($value)) {
