@@ -227,6 +227,14 @@ class Mysql extends Sql implements Database {
 
 
 	private function convert_arrays($arr = array(), $delimiter = ', ') {
+		if(!is_array($arr)) {
+			$arr = array($arr);
+		}
+
+		if(!Helper::is_assoc($arr)) {
+			return implode($delimiter, $arr);
+		}
+
 		return $this->get_param_string($this->format_values($arr), $delimiter);
 	}
 	
