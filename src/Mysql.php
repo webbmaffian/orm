@@ -28,8 +28,12 @@ class Mysql extends Sql implements Database {
 		
 		$this->instance = new mysqli($args['host'], $args['user'], $args['password'], $args['database'], $args['port']);
 
-		if(!$this->instance || $this->instance->connect_errno) {
-			throw new Database_Exception("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error);
+		if(!$this->instance) {
+			throw new Database_Exception("Failed to create mysqli instance.");
+		}
+
+		if($this->instance->connect_errno) {
+			throw new Database_Exception("Failed to connect to MySQL: (" . $this->instance->connect_errno . ") " . $this->instance->connect_error);
 		}
 
 		$this->instance->set_charset('utf8');
@@ -210,7 +214,7 @@ class Mysql extends Sql implements Database {
 	}
 
 
-	protected function get_delete_query($table, $condition, $quotes) {
+	protected function get_delete_query($table, $condition, $quotes = true) {
 		$condition = $this->convert_arrays($condition, ' AND ', $quotes);
 
 		return 'DELETE FROM ' . $table . ' WHERE ' . $condition;
@@ -245,7 +249,7 @@ class Mysql extends Sql implements Database {
 
 
 	public function prepare_delete($table, $condition_columns) {
-		$condition = $this->columns_to_prepared_params($columns);
+		$condition = $this->columns_to_prepared_params($condition_columns);
 
 		return $this->prepare($this->get_delete_query($table, $condition));
 	}
