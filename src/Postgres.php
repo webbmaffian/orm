@@ -11,6 +11,8 @@
 		const TRUE_VALUE = 'true';
 		const FALSE_VALUE = 'false';
 
+		protected $last_inserted_id = null;
+
 		
 		/* $args should be an associative array with the following keys:
 			- host
@@ -88,6 +90,8 @@
 
 
 		protected function run_query($query) {
+			$this->last_inserted_id = null;
+
 			if(!pg_send_query($this->instance, $query)) {
 				throw new Database_Exception('Failed to execute query.');
 			}
@@ -129,7 +133,7 @@
 
 
 		public function get_last_id() {
-			return (int)$this->get_value('SELECT lastval();');
+			return ($this->last_inserted_id ?: (int)$this->get_value('SELECT lastval();'));
 		}
 
 
@@ -159,30 +163,41 @@
 		}
 
 
-		// Insert with the "on duplicate key update" approach.
-		// This function can't be shared between Postgres and MySQL, as they work too different.
+		protected function get_real_upsert_query($table, $param_keys = array(), $param_values = array(), $keys_to_update = array(), $auto_increment = null, $unique_keys = array()) {
+
+			// Turn array('key' => 'value') to array('key' => 'EXCLUDED.key')
+			$keys_to_update = array_map(function($key) {
+				return 'EXCLUDED.' . $key;
+			}, array_combine($keys_to_update, $keys_to_update));
+	
+			if($auto_increment) {
+				$keys_to_update[$auto_increment] = 'LAST_INSERT_ID(' . $auto_increment . ')';
+			}
+			
+			$query = 'INSERT INTO ' . $table . '(' . implode(', ', $param_keys) . ') VALUES(' . implode(', ', $param_values) . ') ON CONFLICT (' . implode(', ', $unique_keys) . ') DO UPDATE SET ' . $this->get_param_string($keys_to_update);
+
+			if(!is_null($auto_increment)) {
+				$query .= ' RETURNING ' . $auto_increment;
+			}
+
+			return $query;
+		}
+
+
+		public function upsert($table, $params = array(), $unique_keys = array(), $dont_update_keys = array(), $auto_increment = null) {
+			$result = $this->query($this->get_upsert_query($table, $params, $unique_keys, $dont_update_keys, $auto_increment));
+
+			if($auto_increment) {
+				$this->last_inserted_id = (int)$result->fetch_value();
+			}
+	
+			return true;
+		}
+
+
+		// DEPRECATED
 		public function insert_update($table, $params = array(), $unique_keys = array(), $dont_update_keys = array(), $return_key = null) {
-			$params = $this->format_values($params);
-
-			if(!is_array($unique_keys)) {
-				$unique_keys = array($unique_keys);
-			}
-			
-			$non_unique_params = array_filter($params, function($v, $k) use ($unique_keys) {
-				return !in_array($k, $unique_keys);
-			}, ARRAY_FILTER_USE_BOTH);
-
-			if(!empty($dont_update_keys)) {
-				$non_unique_params = array_diff_key($non_unique_params, array_flip($dont_update_keys));
-			}
-
-			$query = 'INSERT INTO ' . $table . ' (' . implode(', ', array_keys($params)) . ') VALUES (' . implode(', ', $params) . ') ON CONFLICT (' . implode(', ', $unique_keys) . ') DO UPDATE SET ' . $this->get_param_string($non_unique_params);
-			
-			if(!is_null($return_key)) {
-				$query .= ' RETURNING ' . $return_key;
-			}
-
-			return $this->query($query);
+			return $this->upsert($table, $params, $unique_keys, $dont_update_keys, $return_key);
 		}
 		
 		

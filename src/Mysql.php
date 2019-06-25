@@ -152,62 +152,102 @@ class Mysql extends Sql implements Database {
 
 	
 	public function insert($table, $params = array()) {
-		$params = $this->convert_arrays($params);
-
-		$query = 'INSERT INTO ' . $table . ' SET ' . $params;
-		$result = $this->query($query);
+		$this->query($this->get_insert_query($table, $params));
 
 		return true;
+	}
+
+
+	protected function get_insert_query($table, $params = array(), $quotes = true) {
+		$params = $this->convert_arrays($params, ', ', $quotes);
+
+		return 'INSERT INTO ' . $table . ' SET ' . $params;
 	}
 
 	
 	public function update($table, $params = array(), $condition = array()) {
-		$params = $this->convert_arrays($params);
-		$condition = $this->convert_arrays($condition, ' AND ');
-
-		$query = 'UPDATE ' . $table . ' SET ' . $params . ' WHERE ' . $condition;
-		$this->query($query);
+		$this->query($this->get_update_query($table, $params, $condition));
 
 		return true;
 	}
+
+
+	protected function get_update_query($table, $params = array(), $condition = array(), $quotes = true) {
+		$params = $this->convert_arrays($params, ', ', $quotes);
+		$condition = $this->convert_arrays($condition, ' AND ', $quotes);
+
+		return 'UPDATE ' . $table . ' SET ' . $params . ' WHERE ' . $condition;
+	}
 	
 
-	// Insert with the "on duplicate key update" approach.
-	// This function can't be shared between Postgres and MySQL, as they work too different.
+	// DEPRECATED
 	public function insert_update($table, $params = array(), $unique_keys = array(), $auto_increment = null) {
-		$params = $this->format_values($params);
-		
-		if(!is_array($unique_keys)) {
-			$unique_keys = array($unique_keys);
-		}
-		
-		$param_keys = array_keys($params);
-		$param_values = array_values($params);
-
-		$param_keys_non_unique = array_diff($param_keys, $unique_keys);
-		$param_keys_non_unique = array_map(function($key) {
-			return 'VALUES(' . $key . ')';
-		}, array_combine($param_keys_non_unique, $param_keys_non_unique));
-		
-		$query = 'INSERT INTO ' . $table . '(' . implode(', ', $param_keys) . ') VALUES(' . implode(', ', $param_values) . ') ON DUPLICATE KEY UPDATE ' . $this->get_param_string($param_keys_non_unique);
-		
-		if($auto_increment) {
-			$query .= sprintf(', %s = LAST_INSERT_ID(%s)', $auto_increment, $auto_increment);
-		}
-		
-		$result = $this->query($query);
+		$this->upsert($table, $params, $unique_keys, array(), $auto_increment);
 
 		return true;
+	}
+
+
+	protected function get_real_upsert_query($table, $param_keys = array(), $param_values = array(), $keys_to_update = array(), $auto_increment = null, $unique_keys = array()) {
+
+		// Turn array('key' => 'value') to array('key' => 'VALUES(key)')
+		$keys_to_update = array_map(function($key) {
+			return 'VALUES(' . $key . ')';
+		}, array_combine($keys_to_update, $keys_to_update));
+
+		if($auto_increment) {
+			$keys_to_update[$auto_increment] = 'LAST_INSERT_ID(' . $auto_increment . ')';
+		}
+		
+		return 'INSERT INTO ' . $table . '(' . implode(', ', $param_keys) . ') VALUES(' . implode(', ', $param_values) . ') ON DUPLICATE KEY UPDATE ' . $this->get_param_string($keys_to_update);
 	}
 
 	
 	public function delete($table, $condition) {
-		$condition = $this->convert_arrays($condition, ' AND ');
-
-		$query = 'DELETE FROM ' . $table . ' WHERE ' . $condition;
-		$result = $this->query($query);
+		$this->query($this->get_delete_query($table, $condition));
 
 		return true;
+	}
+
+
+	protected function get_delete_query($table, $condition, $quotes) {
+		$condition = $this->convert_arrays($condition, ' AND ', $quotes);
+
+		return 'DELETE FROM ' . $table . ' WHERE ' . $condition;
+	}
+
+
+	public function prepare_insert($table, $columns = array()) {
+		$params = $this->columns_to_prepared_params($columns);
+
+		return $this->prepare($this->get_insert_query($table, $params, false));
+	}
+
+
+	public function prepare_update($table, $columns = array(), $condition_columns = array()) {
+		$params = $this->columns_to_prepared_params($columns);
+		$condition = $this->columns_to_prepared_params($condition_columns);
+
+		return $this->prepare($this->get_update_query($table, $params, $condition, false));
+	}
+
+
+	public function prepare_upsert($table, $columns = array(), $unique_keys = array(), $dont_update_keys = array(), $auto_increment = null) {
+		if(is_string($dont_update_keys) && is_null($auto_increment)) {
+			$dont_update_keys = array();
+			$auto_increment = $dont_update_keys;
+		}
+
+		$params = $this->columns_to_prepared_params($columns);
+
+		return $this->prepare($this->get_upsert_query($table, $params, $unique_keys, $dont_update_keys, $auto_increment, false));
+	}
+
+
+	public function prepare_delete($table, $condition_columns) {
+		$condition = $this->columns_to_prepared_params($columns);
+
+		return $this->prepare($this->get_delete_query($table, $condition));
 	}
 
 	
@@ -226,7 +266,7 @@ class Mysql extends Sql implements Database {
 	}
 
 
-	private function convert_arrays($arr = array(), $delimiter = ', ') {
+	private function convert_arrays($arr = array(), $delimiter = ', ', $quotes = true) {
 		if(!is_array($arr)) {
 			$arr = array($arr);
 		}
@@ -235,7 +275,18 @@ class Mysql extends Sql implements Database {
 			return implode($delimiter, $arr);
 		}
 
-		return $this->get_param_string($this->format_values($arr), $delimiter);
+		return $this->get_param_string($this->format_values($arr, $quotes), $delimiter);
+	}
+
+
+	private function columns_to_prepared_params($columns = array()) {
+		$params = array();
+
+		foreach($columns as $column) {
+			$params[$column] = ':' . $column;
+		}
+
+		return $params;
 	}
 	
 	

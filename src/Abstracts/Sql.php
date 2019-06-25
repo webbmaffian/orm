@@ -199,4 +199,39 @@ abstract class Sql {
 			'table_name' => $table
 		));
 	}
+
+
+	public function upsert($table, $params = array(), $unique_keys = array(), $dont_update_keys = array(), $auto_increment = null) {
+		$this->query($this->get_upsert_query($table, $params, $unique_keys, $dont_update_keys, $auto_increment));
+
+		return true;
+	}
+
+
+	protected function get_upsert_query($table, $params = array(), $unique_keys = array(), $dont_update_keys = array(), $auto_increment = null, $quotes = true) {
+		$params = $this->format_values($params, $quotes);
+		
+		if(!is_array($unique_keys)) {
+			$unique_keys = array($unique_keys);
+		}
+
+		if(!is_array($dont_update_keys)) {
+			$dont_update_keys = array($dont_update_keys);
+		}
+		
+		$param_keys = array_keys($params);
+		$param_values = array_values($params);
+
+		// Append unique keys, as they shouldn't get updated
+		$dont_update_keys = array_unique(array_merge($dont_update_keys, $unique_keys));
+
+		// Find out which keys should be updated
+		$keys_to_update = array_diff($param_keys, $dont_update_keys);
+
+		if(empty($keys_to_update)) {
+			throw new Database_Exception('No keys to update during upsert');
+		}
+
+		return $this->get_real_upsert_query($table, $param_keys, $param_values, $keys_to_update, $auto_increment, $unique_keys);
+	}
 }
