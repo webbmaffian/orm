@@ -292,9 +292,28 @@ class Mysql extends Sql implements Database {
 
 		return $params;
 	}
-	
-	
-	static protected function get_param_placeholder($index) {
-		return '?';
+
+
+	static public function convert_query($query = '') {
+		$mappings = array();
+
+		$new_query = preg_replace_callback(self::VARIABLE_REGEX, function($matches) use (&$mappings) {
+			$mappings[] = $matches[1];
+			
+			return '?';
+		}, $query);
+
+		return array($new_query, $mappings);
+	}
+
+
+	static public function sort_params($params = array(), $mappings = array()) {
+		$arr = array();
+
+		foreach($mappings as $value) {
+			$arr[] = $params[$value];
+		}
+
+		return $arr;
 	}
 }
