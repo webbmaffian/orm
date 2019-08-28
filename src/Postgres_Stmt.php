@@ -1,7 +1,6 @@
 <?php
 	namespace Webbmaffian\ORM;
 
-	use Webbmaffian\ORM\Abstracts\Sql;
 	use Webbmaffian\ORM\Abstracts\Sql_Stmt;
 	use Webbmaffian\ORM\Interfaces\Database_Stmt;
 	use Webbmaffian\ORM\Helpers\Helper;
@@ -23,7 +22,7 @@
 			if(!empty($args) && Helper::is_assoc($args)) {
 				if(empty($this->mappings)) throw new Database_Exception('Missing parameter mappings.');
 
-				$args = Sql::sort_params($args, $this->mappings);
+				$args = Postgres::sort_params($args, $this->mappings);
 			}
 
 			if(!pg_send_execute($this->db->get_instance(), $this->name, $args)) {
