@@ -224,7 +224,7 @@ class Mysql extends Sql implements Database {
 	}
 
 
-	protected function get_delete_query($table, $condition, $quotes) {
+	protected function get_delete_query($table, $condition, $quotes = true) {
 		$condition = $this->convert_arrays($condition, ' AND ', $quotes);
 
 		return 'DELETE FROM ' . $table . ' WHERE ' . $condition;
@@ -259,7 +259,7 @@ class Mysql extends Sql implements Database {
 
 
 	public function prepare_delete($table, $condition_columns) {
-		$condition = $this->columns_to_prepared_params($columns);
+		$condition = $this->columns_to_prepared_params($condition_columns);
 
 		return $this->prepare($this->get_delete_query($table, $condition));
 	}
@@ -302,9 +302,28 @@ class Mysql extends Sql implements Database {
 
 		return $params;
 	}
-	
-	
-	static protected function get_param_placeholder($index) {
-		return '?';
+
+
+	static public function convert_query($query = '') {
+		$mappings = array();
+
+		$new_query = preg_replace_callback(self::VARIABLE_REGEX, function($matches) use (&$mappings) {
+			$mappings[] = $matches[1];
+			
+			return '?';
+		}, $query);
+
+		return array($new_query, $mappings);
+	}
+
+
+	static public function sort_params($params = array(), $mappings = array()) {
+		$arr = array();
+
+		foreach($mappings as $value) {
+			$arr[] = $params[$value];
+		}
+
+		return $arr;
 	}
 }

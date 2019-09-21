@@ -218,11 +218,6 @@
 			return pg_close($this->instance);
 		}
 
-		
-		static protected function get_param_placeholder($index) {
-			return '$' . $index;
-		}
-
 
 		// Adds support for question marks as parameter placeholders - MySQL-style.
 		static public function convert_numeric($query) {
@@ -285,5 +280,33 @@
 			}
 
 			return $null_values;
+		}
+
+
+		static public function convert_query($query = '') {
+			$mappings = array();
+	
+			$new_query = preg_replace_callback(self::VARIABLE_REGEX, function($matches) use (&$mappings) {
+				$name = $matches[1];
+				
+				if(!isset($mappings[$name])) {
+					$mappings[$name] = (empty($mappings) ? 1 : end($mappings) + 1);
+				}
+				
+				return '$' . $mappings[$name];
+			}, $query);
+	
+			return array($new_query, $mappings);
+		}
+
+
+		static public function sort_params($params = array(), $mappings = array()) {
+			$arr = array();
+	
+			foreach(array_keys($mappings) as $key) {
+				$arr[] = $params[$key];
+			}
+	
+			return $arr;
 		}
 	}

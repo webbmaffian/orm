@@ -147,43 +147,16 @@ abstract class Sql {
 	 * ... in order to run mysqli prepared statements
 	 */
 	static protected function convert_assoc($query = '', $params) {
-		list($new_query, $mappings) = self::convert_query($query);
+		list($new_query, $mappings) = static::convert_query($query);
 
-		$params = self::sort_params($params, $mappings);
+		$params = static::sort_params($params, $mappings);
 
 		return array($new_query, $params);
 	}
 
 
-	static public function sort_params($params = array(), $mappings = array()) {
-		$arr = array();
-
-		foreach(array_keys($mappings) as $key) {
-			$arr[] = $params[$key];
-		}
-
-		return $arr;
-	}
-
-
-	static public function convert_query($query = '') {
-		$mappings = array();
-
-		$new_query = preg_replace_callback(self::VARIABLE_REGEX, function($matches) use (&$mappings) {
-			$name = $matches[1];
-			
-			if(!isset($mappings[$name])) {
-				$mappings[$name] = (empty($mappings) ? 1 : end($mappings) + 1);
-			}
-			
-			return static::get_param_placeholder($mappings[$name]);
-		}, $query);
-
-		return array($new_query, $mappings);
-	}
-
-
-	abstract static protected function get_param_placeholder($index);
+	abstract static public function sort_params($params = array(), $mappings = array());
+	abstract static public function convert_query($query = '');
 
 
 	public function get_instance() {

@@ -1,12 +1,10 @@
 <?php
 
 namespace Webbmaffian\ORM;
-use Webbmaffian\ORM\Abstracts\Sql;
 use Webbmaffian\ORM\Abstracts\Sql_Stmt;
 use Webbmaffian\ORM\Interfaces\Database_Stmt;
 use Webbmaffian\ORM\Helpers\Helper;
 use Webbmaffian\ORM\Helpers\Database_Exception;
-use \mysqli;
 
 class Mysql_Stmt extends Sql_Stmt implements Database_Stmt {
 	protected function create_stmt($query) {
@@ -25,7 +23,7 @@ class Mysql_Stmt extends Sql_Stmt implements Database_Stmt {
 			if(Helper::is_assoc($args)) {
 				if(empty($this->mappings)) throw new Database_Exception('Missing parameter mappings.');
 
-				$args = Sql::sort_params($args, $this->mappings);
+				$args = Mysql::sort_params($args, $this->mappings);
 			}
 
 			$types = '';
