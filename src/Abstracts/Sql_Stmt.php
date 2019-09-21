@@ -30,7 +30,7 @@
 			$this->create_stmt($query);
 			
 			if(!$this->stmt) {
-				throw new Database_Exception($this->db->last_error());
+				throw new Database_Exception('Preparation error: ' . $this->db->last_error(), 0, null, $query);
 			}
 			
 			self::$next_name++;
