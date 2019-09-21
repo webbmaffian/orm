@@ -49,6 +49,10 @@ class DB {
 		if(isset($_ENV['DB_PASSWORD'])) $defaults['password'] = $_ENV['DB_PASSWORD'];
 		elseif(isset($_ENV['MYSQL_ROOT_PASSWORD'])) $defaults['password'] = $_ENV['MYSQL_ROOT_PASSWORD'];
 
+		if(isset($_ENV['DB_CA_CERTIFICATE'])) {
+			$defaults['ca_certificate'] = $_ENV['DB_CA_CERTIFICATE'];
+		}
+
 		return new Mysql(self::get_params($id, $defaults));
 	}
 

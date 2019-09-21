@@ -20,16 +20,30 @@ class Mysql extends Sql implements Database {
 	 * - dbname
 	 * - user
 	 * - password
+	 * - ca_certificate (if SSL)
 	*/
 	protected function setup_instance($args) {
 		if(!function_exists('mysqli_init')) {
 			throw new Database_Exception('Mysqli driver is missing.');
 		}
 		
-		$this->instance = new mysqli($args['host'], $args['user'], $args['password'], $args['database'], $args['port']);
+		$this->instance = new mysqli();
 
-		if(!$this->instance || $this->instance->connect_errno) {
-			throw new Database_Exception("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error);
+		if(!$this->instance) {
+			throw new Database_Exception('Failed to create mysqli instance.');
+		}
+
+		if($args['ca_certificate']) {
+			if(!is_readable($args['ca_certificate'])) {
+				throw new Database_Exception('CA certificate does not exist or is not readable.');
+			}
+
+			$this->instance->options(MYSQLI_OPT_SSL_VERIFY_SERVER_CERT, true);
+			$this->instance->ssl_set(null, null, $args['ca_certificate'], null, null);
+		}
+
+		if($this->instance->real_connect($args['host'], $args['user'], $args['password'], $args['database'], $args['port'])) {
+			throw new Database_Exception('Failed to connect to MySQL: (' . $this->instance->connect_errno . ') ' . $this->instance->connect_error);
 		}
 
 		$this->instance->set_charset('utf8');
