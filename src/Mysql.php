@@ -33,7 +33,7 @@ class Mysql extends Sql implements Database {
 			throw new Database_Exception('Failed to create mysqli instance.');
 		}
 
-		if($args['ca_certificate']) {
+		if(!empty($args['ca_certificate'])) {
 			if(!is_readable($args['ca_certificate'])) {
 				throw new Database_Exception('CA certificate does not exist or is not readable.');
 			}
@@ -42,7 +42,7 @@ class Mysql extends Sql implements Database {
 			$this->instance->ssl_set(null, null, $args['ca_certificate'], null, null);
 		}
 
-		if($this->instance->real_connect($args['host'], $args['user'], $args['password'], $args['database'], $args['port'])) {
+		if(!$this->instance->real_connect($args['host'], $args['user'], $args['password'], $args['database'], $args['port'])) {
 			throw new Database_Exception('Failed to connect to MySQL: (' . $this->instance->connect_errno . ') ' . $this->instance->connect_error);
 		}
 
