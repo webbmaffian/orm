@@ -83,7 +83,7 @@ class Mysql extends Sql implements Database {
 	public function escape_string($string, $add_quotes = false) {
 		$string = $this->instance->escape_string($string);
 
-		return ($add_quotes ? ('"' . $string . '"') : $string);
+		return ($add_quotes ? ('\'' . $string . '\'') : $string);
 	}
 	
 	
