@@ -26,7 +26,7 @@
 			}
 
 			if(!pg_send_execute($this->db->get_instance(), $this->name, $args)) {
-				throw new Database_Exception('Failed to execute prepared statement.');
+				throw new Database_Exception('Failed to execute prepared statement.', 0, null, $this->get_query(), $args);
 			}
 
 			$result = pg_get_result($this->db->get_instance());

@@ -46,7 +46,7 @@ class Mysql_Stmt extends Sql_Stmt implements Database_Stmt {
 		$result = $this->stmt->execute();
 		
 		if(!$result) {
-			throw new Database_Exception($this->stmt->error);
+			throw new Database_Exception($this->stmt->error, 0, null, $this->get_query(), $args);
 		}
 		
 		return new Mysql_Result($this->stmt->get_result());

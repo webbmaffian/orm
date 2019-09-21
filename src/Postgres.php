@@ -93,7 +93,7 @@
 			$this->last_inserted_id = null;
 
 			if(!pg_send_query($this->instance, $query)) {
-				throw new Database_Exception('Failed to execute query.');
+				throw new Database_Exception('Failed to execute query.', 0, null, $query);
 			}
 
 			$result = new Postgres_Result(pg_get_result($this->instance));

@@ -127,7 +127,7 @@ class Mysql extends Sql implements Database {
 		$resource = $this->instance->query($query);
 
 		if(!$resource) {
-			throw new Database_Exception($this->last_error());
+			throw new Database_Exception($this->last_error(), 0, null, $query);
 		}
 
 		return new Mysql_Result($resource);
