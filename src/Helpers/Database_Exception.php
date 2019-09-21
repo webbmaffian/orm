@@ -7,7 +7,9 @@
 
 		
 		public function __construct($message = '', $code = 0 , \Exception $previous = null, $query = null, $args = null) {
-			$this->_field = $field;
+			$this->_query = $query;
+			$this->_args = $args;
+			
 			parent::__construct($message, $code, $previous);
 		}
 
