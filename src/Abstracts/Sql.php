@@ -107,10 +107,6 @@ abstract class Sql {
 	protected function format_values($params = array(), $quotes = true) {
 		foreach($params as $key => $value) {
 			if(is_array($value)) {
-				array_walk_recursive($value, function(&$val, $key) {
-					$val = addslashes($val);
-				});
-
 				$value = json_encode($value);
 			}
 			elseif($value instanceof \DateTime) {
