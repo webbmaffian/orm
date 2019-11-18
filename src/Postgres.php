@@ -283,20 +283,20 @@
 		}
 
 
-		static public function convert_query($query = '', &$params) {
+		static public function convert_query($query = '', &$params = array()) {
 			$mappings = array();
 	
 			$new_query = preg_replace_callback(self::VARIABLE_REGEX, function($matches) use (&$mappings, &$params) {
 				$var = $matches[1];
 
 				if($var[0] === '@') {
-					$var = substr($var, 1);
-
-					if(isset($params[$var])) {
-						$value = $params[$var];
-
-						unset($params[$var]);
-
+					$new_var = substr($var, 1);
+	
+					if(isset($params[$new_var])) {
+						$value = $params[$new_var];
+	
+						unset($params[$new_var]);
+	
 						return $value;
 					}
 				}

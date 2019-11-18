@@ -24,7 +24,7 @@
 			$db_class = get_class($db);
 			
 			if(preg_match($db_class::VARIABLE_REGEX, $query) !== '') {
-				list($query, $this->mappings) = $db_class::convert_query($query);
+				list($query, $this->mappings) = $db_class::convert_query($query); // <- Todo: add support for "prepared literals"
 			}
 
 			$this->create_stmt($query);

@@ -152,7 +152,7 @@ abstract class Sql {
 
 
 	abstract static public function sort_params($params = array(), $mappings = array());
-	abstract static public function convert_query($query = '', &$params);
+	abstract static public function convert_query($query = '', &$params = array());
 
 
 	public function get_instance() {
