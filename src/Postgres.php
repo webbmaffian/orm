@@ -283,17 +283,29 @@
 		}
 
 
-		static public function convert_query($query = '') {
+		static public function convert_query($query = '', &$params) {
 			$mappings = array();
 	
-			$new_query = preg_replace_callback(self::VARIABLE_REGEX, function($matches) use (&$mappings) {
-				$name = $matches[1];
-				
-				if(!isset($mappings[$name])) {
-					$mappings[$name] = (empty($mappings) ? 1 : end($mappings) + 1);
+			$new_query = preg_replace_callback(self::VARIABLE_REGEX, function($matches) use (&$mappings, &$params) {
+				$var = $matches[1];
+
+				if($var[0] === '@') {
+					$var = substr($var, 1);
+
+					if(isset($params[$var])) {
+						$value = $params[$var];
+
+						unset($params[$var]);
+
+						return $value;
+					}
 				}
 				
-				return '$' . $mappings[$name];
+				if(!isset($mappings[$var])) {
+					$mappings[$var] = (empty($mappings) ? 1 : end($mappings) + 1);
+				}
+				
+				return '$' . $mappings[$var];
 			}, $query);
 	
 			return array($new_query, $mappings);

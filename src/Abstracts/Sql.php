@@ -7,7 +7,7 @@ use Webbmaffian\ORM\Helpers\Helper;
 use Webbmaffian\ORM\Helpers\Database_Exception;
 
 abstract class Sql {
-	const VARIABLE_REGEX = '/(?<!\:)\:([a-z0-9_]+)/i';
+	const VARIABLE_REGEX = '/(?<!\:)\:(\@?[a-z0-9_]+)/i';
 
 	protected $instance = null;
 	protected $schema = null;
@@ -133,8 +133,8 @@ abstract class Sql {
 
 	/**
 	 * Converts associative parametered queries like:
-	 * $query = SELECT * FROM shops WHERE name = :name AND something = :somewhat OR another_name = :name
-	 * $params = array('name' => 'A Name', 'somewhat' => 'Some data')
+	 * $query = SELECT * FROM :@table WHERE name = :name AND something = :somewhat OR another_name = :name
+	 * $params = array('table' => 'shops', 'name' => 'A Name', 'somewhat' => 'Some data')
 	 * 
 	 * ... to:
 	 * $query = SELECT * FROM shops WHERE name = ? AND something = ? OR another_name = ?
@@ -143,7 +143,7 @@ abstract class Sql {
 	 * ... in order to run mysqli prepared statements
 	 */
 	static protected function convert_assoc($query = '', $params) {
-		list($new_query, $mappings) = static::convert_query($query);
+		list($new_query, $mappings) = static::convert_query($query, $params);
 
 		$params = static::sort_params($params, $mappings);
 
@@ -152,7 +152,7 @@ abstract class Sql {
 
 
 	abstract static public function sort_params($params = array(), $mappings = array());
-	abstract static public function convert_query($query = '');
+	abstract static public function convert_query($query = '', &$params);
 
 
 	public function get_instance() {
