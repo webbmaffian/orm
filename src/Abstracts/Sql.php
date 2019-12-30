@@ -41,6 +41,28 @@ abstract class Sql {
 	}
 
 
+	public function transaction($callback) {
+		if(!is_callable($callback)) {
+			throw new Database_Exception('Invalid transaction callback.');
+		}
+
+		$already_in_transaction = $this->is_transaction();
+
+		try {
+			if(!$already_in_transaction) $this->start_transaction();
+
+			call_user_func($callback);
+
+			if(!$already_in_transaction) $this->end_transaction();
+		}
+		catch(\Exception $e) {
+			if(!$already_in_transaction) $this->rollback();
+
+			throw $e;
+		}
+	}
+
+
 	abstract protected function run_query($query);
 
 
