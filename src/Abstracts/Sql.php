@@ -51,9 +51,11 @@ abstract class Sql {
 		try {
 			if(!$already_in_transaction) $this->start_transaction();
 
-			call_user_func($callback);
+			$return = call_user_func($callback);
 
 			if(!$already_in_transaction) $this->end_transaction();
+
+			return $return;
 		}
 		catch(\Exception $e) {
 			if(!$already_in_transaction) $this->rollback();
