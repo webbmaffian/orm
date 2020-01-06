@@ -41,24 +41,31 @@ abstract class Sql {
 	}
 
 
-	public function transaction($callback) {
+	public function transaction($callback, $savepoint_fallback = true) {
 		if(!is_callable($callback)) {
 			throw new Database_Exception('Invalid transaction callback.');
+		}
+
+		if($savepoint_fallback) {
+			$savepoint_fallback = method_exists($this, 'add_savepoint');
 		}
 
 		$already_in_transaction = $this->is_transaction();
 
 		try {
 			if(!$already_in_transaction) $this->start_transaction();
+			elseif($savepoint_fallback) $this->add_savepoint();
 
 			$return = call_user_func($callback);
 
 			if(!$already_in_transaction) $this->end_transaction();
+			elseif($savepoint_fallback) $this->release_savepoint();
 
 			return $return;
 		}
 		catch(\Exception $e) {
 			if(!$already_in_transaction) $this->rollback();
+			elseif($savepoint_fallback) $this->rollback_savepoint();
 
 			throw $e;
 		}
