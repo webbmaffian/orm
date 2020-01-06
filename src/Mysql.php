@@ -5,6 +5,7 @@ use Webbmaffian\ORM\Abstracts\Sql;
 use Webbmaffian\ORM\Interfaces\Database;
 use Webbmaffian\ORM\Helpers\Helper;
 use Webbmaffian\ORM\Helpers\Database_Exception;
+use Webbmaffian\ORM\Helpers\Sanitize;
 use \mysqli;
 
 class Mysql extends Sql implements Database {
