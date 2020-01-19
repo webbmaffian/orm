@@ -13,6 +13,7 @@ abstract class Sql {
 	protected $schema = null;
 	protected $is_transaction = false;
 	protected $savepoint_increment = 0;
+	static protected $store_timezone = null;
 
 
 	public function __construct($args = array()) {
@@ -141,6 +142,10 @@ abstract class Sql {
 				$value = json_encode($value);
 			}
 			elseif($value instanceof \DateTime) {
+				if(self::$store_timezone) {
+					$value->setTimezone(self::$store_timezone);
+				}
+
 				$value = $value->format('Y-m-d H:i:s');
 			}
 			
@@ -159,6 +164,15 @@ abstract class Sql {
 		}
 		
 		return $params;
+	}
+
+
+	static public function set_store_timezone($timezone) {
+		if(!$timezone instanceof \DateTimeZone) {
+			throw new Problem('Invalid DateTimeZone object.');
+		}
+
+		self::$store_timezone = $timezone;
 	}
 
 
