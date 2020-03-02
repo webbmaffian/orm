@@ -2,7 +2,6 @@
 
 namespace Webbmaffian\ORM\Abstracts;
 
-use Webbmaffian\ORM\Interfaces\Database;
 use Webbmaffian\ORM\Helpers\Helper;
 use Webbmaffian\ORM\Helpers\Database_Exception;
 

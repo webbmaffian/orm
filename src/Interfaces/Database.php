@@ -5,6 +5,8 @@ namespace Webbmaffian\ORM\Interfaces;
 interface Database {
 	public function test();
 
+	public function get_schema();
+
 	public function start_transaction();
 
 	public function end_transaction();
