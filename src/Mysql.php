@@ -5,6 +5,7 @@ use Webbmaffian\ORM\Abstracts\Sql;
 use Webbmaffian\ORM\Interfaces\Database;
 use Webbmaffian\ORM\Helpers\Helper;
 use Webbmaffian\ORM\Helpers\Database_Exception;
+use Webbmaffian\ORM\Helpers\Sanitize;
 use \mysqli;
 
 class Mysql extends Sql implements Database {
@@ -304,11 +305,25 @@ class Mysql extends Sql implements Database {
 	}
 
 
-	static public function convert_query($query = '') {
+	static public function convert_query($query = '', &$params = array()) {
 		$mappings = array();
 
-		$new_query = preg_replace_callback(self::VARIABLE_REGEX, function($matches) use (&$mappings) {
-			$mappings[] = $matches[1];
+		$new_query = preg_replace_callback(self::VARIABLE_REGEX, function($matches) use (&$mappings, &$params) {
+			$var = $matches[1];
+
+			if($var[0] === '@') {
+				$new_var = substr($var, 1);
+
+				if(isset($params[$new_var])) {
+					$value = $params[$new_var];
+
+					unset($params[$new_var]);
+
+					return $value;
+				}
+			}
+
+			$mappings[] = $var;
 			
 			return '?';
 		}, $query);

@@ -6,12 +6,13 @@ use Webbmaffian\ORM\Helpers\Helper;
 use Webbmaffian\ORM\Helpers\Database_Exception;
 
 abstract class Sql {
-	const VARIABLE_REGEX = '/(?<!\:)\:([a-z0-9_]+)/i';
+	const VARIABLE_REGEX = '/(?<!\:)\:(\@?[a-z0-9_]+)/i';
 
 	protected $instance = null;
 	protected $schema = null;
 	protected $is_transaction = false;
 	protected $savepoint_increment = 0;
+	static protected $store_timezone = null;
 
 
 	public function __construct($args = array()) {
@@ -37,6 +38,37 @@ abstract class Sql {
 
 	public function is_transaction() {
 		return $this->is_transaction;
+	}
+
+
+	public function transaction($callback, $savepoint_fallback = true) {
+		if(!is_callable($callback)) {
+			throw new Database_Exception('Invalid transaction callback.');
+		}
+
+		if($savepoint_fallback) {
+			$savepoint_fallback = method_exists($this, 'add_savepoint');
+		}
+
+		$already_in_transaction = $this->is_transaction();
+
+		try {
+			if(!$already_in_transaction) $this->start_transaction();
+			elseif($savepoint_fallback) $this->add_savepoint();
+
+			$return = call_user_func($callback);
+
+			if(!$already_in_transaction) $this->end_transaction();
+			elseif($savepoint_fallback) $this->release_savepoint();
+
+			return $return;
+		}
+		catch(\Exception $e) {
+			if(!$already_in_transaction) $this->rollback();
+			elseif($savepoint_fallback) $this->rollback_savepoint();
+
+			throw $e;
+		}
 	}
 
 
@@ -109,6 +141,10 @@ abstract class Sql {
 				$value = json_encode($value);
 			}
 			elseif($value instanceof \DateTime) {
+				if(self::$store_timezone) {
+					$value->setTimezone(self::$store_timezone);
+				}
+
 				$value = $value->format('Y-m-d H:i:s');
 			}
 			
@@ -130,10 +166,19 @@ abstract class Sql {
 	}
 
 
+	static public function set_store_timezone($timezone) {
+		if(!$timezone instanceof \DateTimeZone) {
+			throw new Problem('Invalid DateTimeZone object.');
+		}
+
+		self::$store_timezone = $timezone;
+	}
+
+
 	/**
 	 * Converts associative parametered queries like:
-	 * $query = SELECT * FROM shops WHERE name = :name AND something = :somewhat OR another_name = :name
-	 * $params = array('name' => 'A Name', 'somewhat' => 'Some data')
+	 * $query = SELECT * FROM :@table WHERE name = :name AND something = :somewhat OR another_name = :name
+	 * $params = array('table' => 'shops', 'name' => 'A Name', 'somewhat' => 'Some data')
 	 * 
 	 * ... to:
 	 * $query = SELECT * FROM shops WHERE name = ? AND something = ? OR another_name = ?
@@ -142,7 +187,7 @@ abstract class Sql {
 	 * ... in order to run mysqli prepared statements
 	 */
 	static protected function convert_assoc($query = '', $params) {
-		list($new_query, $mappings) = static::convert_query($query);
+		list($new_query, $mappings) = static::convert_query($query, $params);
 
 		$params = static::sort_params($params, $mappings);
 
@@ -151,7 +196,7 @@ abstract class Sql {
 
 
 	abstract static public function sort_params($params = array(), $mappings = array());
-	abstract static public function convert_query($query = '');
+	abstract static public function convert_query($query = '', &$params = array());
 
 
 	public function get_instance() {
