@@ -6,8 +6,8 @@ use Webbmaffian\ORM\Helpers\Driver;
 
 class DB {
 	static private $_instances = array();
-	static private $_identifier_middleware = null;
-	static private $_params_middleware = null;
+	static private $_identifier_middlewares = null;
+	static private $_params_middlewares = null;
 
 	
 	static public function instance($id = 'app') {
@@ -72,8 +72,12 @@ class DB {
 
 
 	static protected function get_identifier($id) {
-		if(!is_null(self::$_identifier_middleware)) {
-			$id = call_user_func(self::$_identifier_middleware, $id);
+		if(!is_null(self::$_identifier_middlewares)) {
+			foreach(self::$_identifier_middlewares as $callback) {
+				if($_id = call_user_func($callback, $id)) {
+					$id = $_id;
+				}
+			}
 		}
 
 		return $id;
@@ -81,8 +85,12 @@ class DB {
 
 
 	static protected function get_params($id, $params) {
-		if(!is_null(self::$_params_middleware)) {
-			$params = call_user_func(self::$_params_middleware, $id, $params);
+		if(!is_null(self::$_params_middlewares)) {
+			foreach(self::$_params_middlewares as $callback) {
+				if($_params = call_user_func($callback, $id, $params)) {
+					$params = $_params;
+				}
+			}
 		}
 
 		return $params;
@@ -90,19 +98,37 @@ class DB {
 
 
 	static public function set_identifier_middleware($middleware) {
+		self::add_identifier_middleware($middleware);
+	}
+
+
+	static public function add_identifier_middleware($middleware) {
 		if(!is_callable($middleware)) {
 			throw new Database_Exception('Middleware is not callable.');
 		}
 
-		self::$_identifier_middleware = $middleware;
+		if(is_null(self::$_identifier_middlewares)) {
+			self::$_identifier_middlewares = [];
+		}
+
+		self::$_identifier_middlewares[] = $middleware;
 	}
 
 
 	static public function set_params_middleware($middleware) {
+		self::add_params_middleware($middleware);
+	}
+
+
+	static public function add_params_middleware($middleware) {
 		if(!is_callable($middleware)) {
 			throw new Database_Exception('Middleware is not callable.');
 		}
 
-		self::$_params_middleware = $middleware;
+		if(is_null(self::$_params_middlewares)) {
+			self::$_params_middlewares = [];
+		}
+
+		self::$_params_middlewares[] = $middleware;
 	}
 }
