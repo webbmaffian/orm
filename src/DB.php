@@ -2,19 +2,23 @@
 
 namespace Webbmaffian\ORM;
 
+use Webbmaffian\ORM\Helpers\Database_Exception;
 use Webbmaffian\ORM\Helpers\Driver;
+
 
 class DB {
 	static private $_instances = array();
 	static private $_identifier_middlewares = null;
+	static private $_type_middlewares = null;
 	static private $_params_middlewares = null;
 
 	
 	static public function instance($id = 'app') {
 		$id = self::get_identifier($id);
-		$type = isset($_ENV['DB_TYPE']) ? $_ENV['DB_TYPE'] : Driver::MYSQL;
 
 		if(!isset(self::$_instances[$id])) {
+			$type = self::get_type(isset($_ENV['DB_TYPE']) ? $_ENV['DB_TYPE'] : Driver::MYSQL, $id);
+
 			switch($type) {
 				case '':
 				case Driver::MYSQL:
@@ -25,6 +29,11 @@ class DB {
 				case Driver::POSTGRES:
 				case 'postgresql':
 					self::$_instances[$id] = self::setup_postgresql($id);
+					break;
+
+				case Driver::PDO:
+				case 'pdo':
+					self::$_instances[$id] = self::setup_pdo($id);
 					break;
 
 				default:
@@ -71,6 +80,11 @@ class DB {
 	}
 
 
+	static private function setup_pdo($id) {
+		return new Pdo(self::get_params($id, []));
+	}
+
+
 	static protected function get_identifier($id) {
 		if(!is_null(self::$_identifier_middlewares)) {
 			foreach(self::$_identifier_middlewares as $callback) {
@@ -81,6 +95,19 @@ class DB {
 		}
 
 		return $id;
+	}
+
+
+	static protected function get_type($type, $id) {
+		if(!is_null(self::$_type_middlewares)) {
+			foreach(self::$_type_middlewares as $callback) {
+				if($_type = call_user_func($callback, $type, $id)) {
+					$type = $_type;
+				}
+			}
+		}
+
+		return $type;
 	}
 
 

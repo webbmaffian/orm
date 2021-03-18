@@ -8,7 +8,7 @@
 	
 	class Pdo_Stmt extends Sql_Stmt implements Database_Stmt {
 		protected function create_stmt($query) {
-			$this->stmt = pg_prepare($this->db->get_instance(), $this->name, $query);
+			$this->stmt = $this->db->get_instance()->prepare($query);
 		}
 
 		
@@ -20,17 +20,22 @@
 			}
 
 			if(!empty($args) && Helper::is_assoc($args)) {
-				if(empty($this->mappings)) throw new Database_Exception('Missing parameter mappings.');
+				$new_args = [];
 
-				$args = Postgres::sort_params($args, $this->mappings);
+				foreach($args as $key => $value) {
+					$new_args[':' . $key] = $value;
+				}
+
+				$args = $new_args;
 			}
 
-			if(!pg_send_execute($this->db->get_instance(), $this->name, $args)) {
-				throw new Database_Exception('Failed to execute prepared statement.', 0, null, $this->get_query(), $args);
+			try {
+				$this->stmt->execute($args);
 			}
-
-			$result = pg_get_result($this->db->get_instance());
+			catch(\PDOException $e) {
+				throw new Database_Exception('Failed to execute prepared statement.', 0, $e, $this->get_query(), $args);
+			}
 			
-			return new Postgres_Result($result);
+			return new Pdo_Result($this->stmt);
 		}
 	}

@@ -41,4 +41,15 @@ class Helper {
 
 		return isset($matches[0]) ? $matches[0]: '';
 	}
+
+
+	static public function get_query_string(array $data, string $separator = ';', string $operator = '='): string {
+		$result = [];
+
+		foreach($data as $key => $value) {
+			$result[] = $key . $operator . $value;
+		}
+
+		return implode($separator, $result);
+	}
 }
