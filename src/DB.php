@@ -17,7 +17,7 @@ class DB {
 		$id = self::get_identifier($id);
 
 		if(!isset(self::$_instances[$id])) {
-			$type = self::get_type(isset($_ENV['DB_TYPE']) ? $_ENV['DB_TYPE'] : Driver::MYSQL, $id);
+			$type = self::get_type($id, isset($_ENV['DB_TYPE']) ? $_ENV['DB_TYPE'] : Driver::MYSQL);
 
 			switch($type) {
 				case '':
@@ -98,10 +98,10 @@ class DB {
 	}
 
 
-	static protected function get_type($type, $id) {
+	static protected function get_type($id, $type) {
 		if(!is_null(self::$_type_middlewares)) {
 			foreach(self::$_type_middlewares as $callback) {
-				if($_type = call_user_func($callback, $type, $id)) {
+				if($_type = call_user_func($callback, $id, $type)) {
 					$type = $_type;
 				}
 			}
