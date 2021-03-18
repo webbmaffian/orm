@@ -142,6 +142,19 @@ class DB {
 	}
 
 
+	static public function add_type_middleware($middleware) {
+		if(!is_callable($middleware)) {
+			throw new Database_Exception('Middleware is not callable.');
+		}
+
+		if(is_null(self::$_type_middlewares)) {
+			self::$_type_middlewares = [];
+		}
+
+		self::$_type_middlewares[] = $middleware;
+	}
+
+
 	static public function set_params_middleware($middleware) {
 		self::add_params_middleware($middleware);
 	}
