@@ -1,12 +1,28 @@
 <?php
 	namespace Webbmaffian\ORM;
 
+	use Webbmaffian\ORM\Abstracts\Sql;
 	use Webbmaffian\ORM\Abstracts\Sql_Stmt;
 	use Webbmaffian\ORM\Interfaces\Database_Stmt;
 	use Webbmaffian\ORM\Helpers\Helper;
 	use Webbmaffian\ORM\Helpers\Database_Exception;
 	
 	class Pdo_Stmt extends Sql_Stmt implements Database_Stmt {
+		public function __construct($db, $query = '') {
+			if(!$db instanceof Sql) {
+				throw new Database_Exception('Invalid DB instance given.');
+			}
+			
+			$this->db = $db;
+			$this->name = 'stmt' . self::$next_name;
+			$this->query = $query;
+
+			$this->create_stmt($query);
+			
+			self::$next_name++;
+		}
+
+
 		protected function create_stmt($query) {
 			$this->stmt = $this->db->get_instance()->prepare($query);
 		}

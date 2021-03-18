@@ -10,11 +10,7 @@
 		protected $resource;
 		
 		
-		public function __construct($resource) {
-			if(!is_resource($resource)) {
-				throw new Database_Exception('Result must be a resource.');
-			}
-			
+		public function __construct(\PDOStatement $resource) {
 			$this->resource = $resource;
 		}
 		
@@ -31,7 +27,7 @@
 		
 		public function fetch_value($row = 0, $field = 0) {
 			try {
-				$data = $this->resource->fetch(\PDO::FETCH_NUM, \PDO::FETCH_ORI_ABS, $row);
+				$data = $this->resource->fetch(\PDO::FETCH_NUM, \PDO::FETCH_ORI_NEXT, $row);
 
 				return $data[$field] ?? false;
 			} catch(\PDOException $e) {

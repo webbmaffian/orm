@@ -40,7 +40,7 @@ class Pdo extends Sql implements Database {
 		$username = $args['username'] ?? null;
 		$password = $args['password'] ?? null;
 
-		unset($args['driver'], $args['user'], $args['password']);
+		unset($args['driver'], $args['username'], $args['password']);
 
 		try {
 			$this->instance = new \PDO($driver . ':' . Helper::get_query_string($args), $username, $password, [
