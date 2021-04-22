@@ -186,7 +186,7 @@ abstract class Sql {
 	 * 
 	 * ... in order to run mysqli prepared statements
 	 */
-	static protected function convert_assoc($query = '', $params) {
+	static protected function convert_assoc($query = '', $params = array()) {
 		list($new_query, $mappings) = static::convert_query($query, $params);
 
 		$params = static::sort_params($params, $mappings);
