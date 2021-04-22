@@ -21,6 +21,7 @@ class Mysql extends Sql implements Database {
 	 * - dbname
 	 * - user
 	 * - password
+	 * - charset
 	 * - ca_certificate (if SSL)
 	*/
 	protected function setup_instance($args) {
@@ -47,7 +48,7 @@ class Mysql extends Sql implements Database {
 			throw new Database_Exception('Failed to connect to MySQL: (' . $this->instance->connect_errno . ') ' . $this->instance->connect_error);
 		}
 
-		$this->instance->set_charset('utf8');
+		$this->instance->set_charset(!empty($args['charset']) ? $args['charset'] : 'utf8');
 		$this->schema = $args['database'];
 	}
 
