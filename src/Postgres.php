@@ -286,7 +286,7 @@
 			return $arr;
 		}
 
-		public function add_savepoint() {}
-		public function release_savepoint() {}
-		public function rollback_savepoint() {}
+		public function add_savepoint($name = null) {}
+		public function release_savepoint($name = null) {}
+		public function rollback_savepoint($name = null) {}
 	}

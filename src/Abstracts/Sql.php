@@ -77,10 +77,10 @@ abstract class Sql {
 
 	abstract public function start_transaction();
 	abstract public function end_transaction();
-	abstract public function add_savepoint();
-	abstract public function release_savepoint();
 	abstract public function rollback();
-	abstract public function rollback_savepoint();
+	abstract public function add_savepoint($name = null);
+	abstract public function release_savepoint($name = null);
+	abstract public function rollback_savepoint($name = null);
 	abstract public function escape_string($string, $add_quotes = false);
 	abstract public function query_params($query, $args);
 	abstract protected function get_real_upsert_query($table, $param_keys = array(), $param_values = array(), $keys_to_update = array(), $auto_increment = null, $unique_keys = array());
