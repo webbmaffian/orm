@@ -15,7 +15,7 @@ interface Database {
 
 	public function rollback();
 
-	public function escape_string($string);
+	public function escape_string($string, $add_quotes);
 
 	public function query();
 	
