@@ -6,7 +6,7 @@
 	use Webbmaffian\ORM\Helpers\Helper;
 	use Webbmaffian\ORM\Helpers\Database_Exception;
 	
-	class Pdo_Stmt extends Sql_Stmt implements Database_Stmt {
+	class Postgres_Stmt extends Sql_Stmt implements Database_Stmt {
 		protected function create_stmt($query) {
 			$this->stmt = pg_prepare($this->db->get_instance(), $this->name, $query);
 		}

@@ -38,7 +38,6 @@ class DB {
 
 				default:
 					throw new Database_Exception('Driver not implemented.');
-					break;
 			}
 		}
 

@@ -6,7 +6,7 @@ class Helper {
 	static public function is_assoc($arr) {
 		if(empty($arr)) return false;
 		
-		if(!is_array($arr)) throw new Problem('Input must be of type Array');
+		if(!is_array($arr)) throw new Database_Exception('Input must be of type Array');
 
 		$keys = array_keys($arr);
 		if(is_string($keys[0])) return true;

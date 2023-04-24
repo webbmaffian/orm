@@ -7,6 +7,9 @@ use Webbmaffian\ORM\Helpers\Database_Exception;
 
 abstract class Sql {
 	const VARIABLE_REGEX = '/(?<!\:)\:(\@?[a-z0-9_]+)/i';
+	const TRUE_VALUE = 1;
+	const FALSE_VALUE = 0;
+	const NULL_VALUE = 'NULL';
 
 	protected $instance = null;
 	protected $schema = null;
@@ -72,6 +75,16 @@ abstract class Sql {
 	}
 
 
+	abstract public function start_transaction();
+	abstract public function end_transaction();
+	abstract public function add_savepoint();
+	abstract public function release_savepoint();
+	abstract public function rollback();
+	abstract public function rollback_savepoint();
+	abstract public function escape_string($string, $add_quotes = false);
+	abstract public function query_params($query, $args);
+	abstract protected function get_real_upsert_query($table, $param_keys = array(), $param_values = array(), $keys_to_update = array(), $auto_increment = null, $unique_keys = array());
+	abstract protected function last_error();
 	abstract protected function run_query($query);
 
 
@@ -168,7 +181,7 @@ abstract class Sql {
 
 	static public function set_store_timezone($timezone) {
 		if(!$timezone instanceof \DateTimeZone) {
-			throw new Problem('Invalid DateTimeZone object.');
+			throw new Database_Exception('Invalid DateTimeZone object.');
 		}
 
 		self::$store_timezone = $timezone;

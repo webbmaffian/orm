@@ -34,7 +34,7 @@
 			$schema = $args['schema'];
 			unset($args['schema']);
 			
-			$this->instance = @pg_connect(http_build_query($args, null, ' '));
+			$this->instance = @pg_connect(http_build_query($args, '', ' '));
 			
 			if(!$this->instance) {
 				throw new Database_Exception('Failed to connect to PostgreSQL.');
@@ -244,42 +244,6 @@
 
 			$this->get_value('CREATE SCHEMA IF NOT EXISTS ' . $schema);
 			$this->set_schema($schema);
-
-			try {
-				$this->update_schema();
-			} catch(Database_Exception $e) {
-				throw new Database_Exception('Failed to setup database tables.', null, $e);
-			}
-		}
-
-
-		public function update_schema() {
-			try {
-				$this->start_transaction();
-
-				$dbv = new DBV($this, $this->schema);
-				$changes = $dbv->compare(Common::ROOT . '/config/dumpfile-tenant.json');
-				$null_values = array();
-
-				if(!empty($changes)) {
-					foreach($changes as $change) {
-						$result = $change->execute();
-
-						$error = $result->get_last_error();
-						if(!empty($error) && strpos($error, 'null values') !== false) {
-							$error_parts = explode(' ', $error);
-							$null_values[] = trim($error_parts[1], '"');
-						}
-					}
-				}
-
-				$this->end_transaction();
-			} catch(Database_Exception $e) {
-				$this->rollback();
-				throw new Database_Exception('Unable to update database.', null, $e);
-			}
-
-			return $null_values;
 		}
 
 
@@ -321,4 +285,8 @@
 	
 			return $arr;
 		}
+
+		public function add_savepoint() {}
+		public function release_savepoint() {}
+		public function rollback_savepoint() {}
 	}

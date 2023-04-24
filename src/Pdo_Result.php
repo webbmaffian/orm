@@ -2,7 +2,6 @@
 	namespace Webbmaffian\ORM;
 
 	use Webbmaffian\ORM\Interfaces\Database_Result;
-	use Webbmaffian\ORM\Helpers\Database_Exception;
 	
 	class Pdo_Result implements Database_Result {
 

@@ -222,4 +222,9 @@ class Pdo extends Sql implements Database {
 	static public function sort_params($params = array(), $mappings = array()) {
 		throw new Database_Exception('The "sort_params" method is not implemented');
 	}
+
+
+	public function add_savepoint() {}
+	public function release_savepoint() {}
+	public function rollback_savepoint() {}
 }
