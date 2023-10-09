@@ -263,7 +263,7 @@ class Mysql extends Sql implements Database {
 	public function prepare_delete($table, $condition_columns) {
 		$condition = $this->columns_to_prepared_params($condition_columns);
 
-		return $this->prepare($this->get_delete_query($table, $condition, true));
+		return $this->prepare($this->get_delete_query($table, $condition, false));
 	}
 
 	
