@@ -8,13 +8,15 @@ use \mysqli_result;
 
 class Mysql_Result implements Database_Result {
 	protected $resource;
+	protected $insert_id;
 
-	public function __construct($resource) {
+	public function __construct($resource, $insert_id = null) {
 		if(!is_bool($resource) && !($resource instanceof mysqli_result)) {
 			throw new Database_Exception('Invalid type.');
 		}
 
 		$this->resource = $resource;
+		$this->insert_id = $insert_id;
 	}
 
 	public function fetch_assoc() {
@@ -75,5 +77,9 @@ class Mysql_Result implements Database_Result {
 		if($this->resource instanceof mysqli_result) {
 			$this->resource->free();
 		}
+	}
+
+	public function get_insert_id() {
+		return $this->insert_id;
 	}
 }
