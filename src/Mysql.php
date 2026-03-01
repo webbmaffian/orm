@@ -12,6 +12,7 @@ class Mysql extends Sql implements Database {
 	const NULL_VALUE = 'NULL';
 	const TRUE_VALUE = 1;
 	const FALSE_VALUE = 0;
+	protected $transaction_depth = 0;
 
 	
 	/**
@@ -59,25 +60,41 @@ class Mysql extends Sql implements Database {
 
 
 	public function start_transaction() {
-		if($this->is_transaction()) return;
-		
+		if($this->is_transaction()) {
+			$this->transaction_depth++;
+			return $this->add_savepoint();
+		}
+
 		$this->is_transaction = true;
+		$this->transaction_depth = 1;
 		return $this->instance->begin_transaction();
 	}
 
 
 	public function end_transaction() {
 		if(!$this->is_transaction()) return;
-		
+
+		if($this->transaction_depth > 1) {
+			$this->transaction_depth--;
+			return $this->release_savepoint();
+		}
+
 		$this->is_transaction = false;
+		$this->transaction_depth = 0;
 		return $this->instance->commit();
 	}
 
 
 	public function rollback() {
 		if(!$this->is_transaction()) return;
-		
+
+		if($this->transaction_depth > 1) {
+			$this->transaction_depth--;
+			return $this->rollback_savepoint();
+		}
+
 		$this->is_transaction = false;
+		$this->transaction_depth = 0;
 		return $this->instance->rollback();
 	}
 
@@ -108,8 +125,11 @@ class Mysql extends Sql implements Database {
 		}
 		
 		$name = Sanitize::key($name);
-		
-		return $this->instance->query('ROLLBACK TO ' . $name);
+		$result = $this->instance->query('ROLLBACK TO ' . $name);
+		if(is_null($name) || preg_match('/^sp\d+$/', $name)) {
+			$this->savepoint_increment = max(0, $this->savepoint_increment - 1);
+		}
+		return $result;
 	}
 	
 	
@@ -119,8 +139,10 @@ class Mysql extends Sql implements Database {
 		}
 		
 		$name = Sanitize::key($name);
-		
 		$this->instance->release_savepoint($name);
+		if(is_null($name) || preg_match('/^sp\d+$/', $name)) {
+			$this->savepoint_increment = max(0, $this->savepoint_increment - 1);
+		}
 	}
 
 
